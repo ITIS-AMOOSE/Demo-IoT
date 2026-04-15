@@ -1,0 +1,280 @@
+[
+    {
+        "id": "flow-tab-1",
+        "type": "tab",
+        "label": "IoT Security Demo",
+        "disabled": false,
+        "info": "Dashboard hiển thị dữ liệu cảm biến IoT"
+    },
+    {
+        "id": "mqtt-in-1",
+        "type": "mqtt in",
+        "z": "flow-tab-1",
+        "name": "MQTT Sensor Data",
+        "topic": "iot/demo/data",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "mqtt-broker-1",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 130,
+        "y": 200,
+        "wires": [
+            [
+                "json-parse-1"
+            ]
+        ]
+    },
+    {
+        "id": "json-parse-1",
+        "type": "json",
+        "z": "flow-tab-1",
+        "name": "Parse JSON",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 330,
+        "y": 200,
+        "wires": [
+            [
+                "func-split-1"
+            ]
+        ]
+    },
+    {
+        "id": "func-split-1",
+        "type": "function",
+        "z": "flow-tab-1",
+        "name": "Tách dữ liệu",
+        "func": "var data = msg.payload;\n\nvar temp = { payload: data.temperature, topic: 'temperature' };\nvar hum = { payload: data.humidity, topic: 'humidity' };\nvar devId = { payload: data.device_id || 'N/A', topic: 'device_id' };\nvar ts = { payload: data.timestamp || new Date().toISOString(), topic: 'timestamp' };\n\nreturn [temp, hum, devId, ts];",
+        "outputs": 4,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 200,
+        "wires": [
+            [
+                "gauge-temp-1",
+                "chart-temp-1"
+            ],
+            [
+                "gauge-hum-1"
+            ],
+            [
+                "text-devid-1"
+            ],
+            [
+                "text-ts-1"
+            ]
+        ]
+    },
+    {
+        "id": "gauge-temp-1",
+        "type": "ui_gauge",
+        "z": "flow-tab-1",
+        "name": "Nhiệt độ",
+        "group": "dashboard-group-1",
+        "order": 1,
+        "width": 6,
+        "height": 4,
+        "gtype": "gage",
+        "title": "Nhiệt độ (°C)",
+        "label": "°C",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "50",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "25",
+        "seg2": "35",
+        "diff": false,
+        "className": "",
+        "x": 780,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "chart-temp-1",
+        "type": "ui_chart",
+        "z": "flow-tab-1",
+        "name": "Biểu đồ nhiệt độ",
+        "group": "dashboard-group-2",
+        "order": 1,
+        "width": 12,
+        "height": 5,
+        "label": "Nhiệt độ theo thời gian",
+        "chartType": "line",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "Đang chờ dữ liệu...",
+        "dot": false,
+        "ymin": "20",
+        "ymax": "45",
+        "removeOlder": "5",
+        "removeOlderPoints": "",
+        "removeOlderUnit": "60",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 810,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "gauge-hum-1",
+        "type": "ui_gauge",
+        "z": "flow-tab-1",
+        "name": "Độ ẩm",
+        "group": "dashboard-group-1",
+        "order": 2,
+        "width": 6,
+        "height": 4,
+        "gtype": "gage",
+        "title": "Độ ẩm (%)",
+        "label": "%",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#ca3838",
+            "#e6e600",
+            "#00b500"
+        ],
+        "seg1": "30",
+        "seg2": "70",
+        "diff": false,
+        "className": "",
+        "x": 770,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "text-devid-1",
+        "type": "ui_text",
+        "z": "flow-tab-1",
+        "group": "dashboard-group-3",
+        "order": 1,
+        "width": 6,
+        "height": 1,
+        "name": "Device ID",
+        "label": "Device ID",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 790,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "text-ts-1",
+        "type": "ui_text",
+        "z": "flow-tab-1",
+        "group": "dashboard-group-3",
+        "order": 2,
+        "width": 6,
+        "height": 1,
+        "name": "Timestamp",
+        "label": "Thời gian",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 790,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "mqtt-broker-1",
+        "type": "mqtt-broker",
+        "name": "Mosquitto Local",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "nodered-dashboard",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "dashboard-group-1",
+        "type": "ui_group",
+        "name": "Cảm biến",
+        "tab": "dashboard-tab-1",
+        "order": 1,
+        "disp": true,
+        "width": "12",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "dashboard-group-2",
+        "type": "ui_group",
+        "name": "Biểu đồ",
+        "tab": "dashboard-tab-1",
+        "order": 2,
+        "disp": true,
+        "width": "12",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "dashboard-group-3",
+        "type": "ui_group",
+        "name": "Thông tin thiết bị",
+        "tab": "dashboard-tab-1",
+        "order": 3,
+        "disp": true,
+        "width": "12",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "dashboard-tab-1",
+        "type": "ui_tab",
+        "name": "IoT Dashboard",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]

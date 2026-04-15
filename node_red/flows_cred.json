@@ -1,0 +1,6 @@
+{
+    "mqtt-broker-1": {
+        "user": "dashboard",
+        "password": "dashboard123"
+    }
+}

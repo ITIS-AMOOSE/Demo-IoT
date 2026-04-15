@@ -1,0 +1,153 @@
+services:
+  # =============================================================
+  # MOSQUITTO BROKER
+  # Password file tạo sẵn trong image
+  # Dùng MOSQUITTO_CONFIG để chọn pha (mặc định: Pha 1)
+  # =============================================================
+  mosquitto:
+    build:
+      context: .
+      dockerfile: mosquitto.Dockerfile
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+    volumes:
+      - ./certs:/mosquitto/certs
+    command: ["-c", "/mosquitto/config/${MOSQUITTO_CONFIG:-mosquitto_open.conf}"]
+    restart: unless-stopped
+
+  # =============================================================
+  # NODE-RED DASHBOARD
+  # Pha 1 & 2: dùng flow port 1883
+  # Pha 3:     dùng flow port 8883 + TLS
+  # =============================================================
+  nodered:
+    build: ./node_red
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered_data:/data
+      - ./node_red/flow-export.json:/data/flows.json
+      - ./node_red/flows_cred.json:/data/flows_cred.json
+      - ./node_red/settings.js:/data/settings.js
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    depends_on:
+      - mosquitto
+    profiles: ["pha1", "pha2"]
+
+  nodered-tls:
+    build: ./node_red
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered_tls_data:/data
+      - ./node_red/flow-pha3.json:/data/flows.json
+      - ./node_red/flows_cred.json:/data/flows_cred.json
+      - ./node_red/settings.js:/data/settings.js
+      - ./certs/ca.crt:/data/certs/ca.crt
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    depends_on:
+      - mosquitto
+    profiles: ["pha3"]
+
+  # =============================================================
+  # PHA 1: Không bảo mật
+  # =============================================================
+  sensor:
+    build: .
+    command: python sensor.py
+    environment:
+      - BROKER_HOST=mosquitto
+    depends_on:
+      - mosquitto
+    profiles: ["pha1"]
+
+  subscriber:
+    build: .
+    command: python subscriber_test.py
+    environment:
+      - BROKER_HOST=mosquitto
+    depends_on:
+      - mosquitto
+    profiles: ["pha1"]
+
+  attacker:
+    build: .
+    command: python attacker.py
+    environment:
+      - BROKER_HOST=mosquitto
+    depends_on:
+      - mosquitto
+    profiles: ["pha1"]
+
+  # =============================================================
+  # PHA 2: Auth + ACL
+  # =============================================================
+  secure-sensor-auth:
+    build: .
+    command: python secure_sensor.py --mode auth
+    environment:
+      - BROKER_HOST=mosquitto
+    depends_on:
+      - mosquitto
+    profiles: ["pha2"]
+
+  secure-attacker-auth:
+    build: .
+    command: python secure_attacker.py --mode auth
+    environment:
+      - BROKER_HOST=mosquitto
+    depends_on:
+      - mosquitto
+    profiles: ["pha2"]
+
+  subscriber-auth:
+    build: .
+    command: python subscriber_test.py --mode auth
+    environment:
+      - BROKER_HOST=mosquitto
+    depends_on:
+      - mosquitto
+    profiles: ["pha2"]
+
+  # =============================================================
+  # PHA 3: TLS + Auth
+  # =============================================================
+  secure-sensor-tls:
+    build: .
+    command: python secure_sensor.py --mode tls
+    environment:
+      - BROKER_HOST=mosquitto
+    volumes:
+      - ./certs:/app/certs
+    depends_on:
+      - mosquitto
+    profiles: ["pha3"]
+
+  secure-attacker-tls:
+    build: .
+    command: python secure_attacker.py --mode tls
+    environment:
+      - BROKER_HOST=mosquitto
+    volumes:
+      - ./certs:/app/certs
+    depends_on:
+      - mosquitto
+    profiles: ["pha3"]
+
+  subscriber-tls:
+    build: .
+    command: python subscriber_test.py --mode tls
+    environment:
+      - BROKER_HOST=mosquitto
+    volumes:
+      - ./certs:/app/certs
+    depends_on:
+      - mosquitto
+    profiles: ["pha3"]
+
+volumes:
+  nodered_data:
+  nodered_tls_data:

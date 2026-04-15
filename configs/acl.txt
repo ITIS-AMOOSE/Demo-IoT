@@ -1,0 +1,17 @@
+# ================================================
+# ACL - Danh sách phân quyền truy cập topic
+# ================================================
+# Cú pháp:
+#   user <username>
+#   topic read|write|readwrite <topic>
+
+# User "sensor" chỉ được WRITE (publish) vào topic dữ liệu
+user sensor
+topic write iot/demo/data
+
+# User "dashboard" chỉ được READ (subscribe) từ topic dữ liệu
+user dashboard
+topic read iot/demo/data
+
+# Lưu ý: User không có trong danh sách này sẽ KHÔNG có quyền
+# truy cập bất kỳ topic nào → attacker sẽ bị chặn.
