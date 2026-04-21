@@ -75,6 +75,35 @@ iot-security-demo/
 >
 > Cài Python dependency: `pip install paho-mqtt==1.6.1`
 
+### Chạy đồng thời cả 3 pha (1 lệnh cho demo)
+
+> Dùng khi bạn muốn mở demo và show ngay 3 mức bảo mật cùng lúc, không cần đổi profile qua lại.
+
+```powershell
+# Nếu demo Pha 3 (TLS), nhớ tạo cert trước (chạy 1 lần)
+cd certs
+.\generate_certs.bat
+cd ..
+
+# Chạy cả 3 pha cùng lúc
+docker compose -f docker-compose.demo.yml up --build
+```
+
+Các cổng broker khi chạy đồng thời:
+- **Pha 1 (Open):** `localhost:1883`
+- **Pha 2 (Auth):** `localhost:1884`
+- **Pha 3 (TLS):** `localhost:8883`
+
+Wireshark filter gợi ý:
+- Pha 1: `tcp.port == 1883`
+- Pha 2: `tcp.port == 1884`
+- Pha 3: `tcp.port == 8883 && tls`
+
+Dừng demo đồng thời:
+```powershell
+docker compose -f docker-compose.demo.yml down
+```
+
 ---
 
 ### Pha 1 — Không bảo mật
@@ -143,9 +172,19 @@ Dừng: `Ctrl+C` ở mỗi terminal, rồi `docker compose --profile pha2 down`
 ```powershell
 # Tạo cert (chạy 1 lần duy nhất)
 cd certs
-generate_certs.bat
+.\generate_certs.bat
 cd ..
 ```
+
+> ⚠️ **Lưu ý Windows (PowerShell):**
+> - Nếu báo `openssl is not recognized`:
+>   - Cài OpenSSL (free): `winget install -e --id ShiningLight.OpenSSL.Light`
+>   - Thêm PATH tạm thời: `$env:Path += ";C:\Program Files\OpenSSL-Win64\bin"`
+>   - Kiểm tra: `openssl version`
+> - Nếu báo `Can't open "ca.crt" for writing, Permission denied`:
+>   - Dừng các tiến trình đang dùng cert (`Ctrl+C`, `docker compose --profile pha3 down`)
+>   - Mở PowerShell quyền Administrator và chạy lại `.\generate_certs.bat`
+> - Nếu bạn đang ở sẵn thư mục `certs`, **không chạy lại** `cd certs`.
 
 **Terminal 1: Khởi động broker TLS**
 ```powershell

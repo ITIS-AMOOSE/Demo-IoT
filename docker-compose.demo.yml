@@ -1,0 +1,125 @@
+services:
+  # ==========================
+  # 3 BROKER CHẠY SONG SONG
+  # ==========================
+  mosquitto-open:
+    build:
+      context: .
+      dockerfile: mosquitto.Dockerfile
+    command: ["-c", "/mosquitto/config/mosquitto_open.conf"]
+    ports:
+      - "1883:1883"
+    restart: unless-stopped
+
+  mosquitto-auth:
+    build:
+      context: .
+      dockerfile: mosquitto.Dockerfile
+    command: ["-c", "/mosquitto/config/mosquitto_auth.conf"]
+    ports:
+      - "1884:1883"
+    restart: unless-stopped
+
+  mosquitto-tls:
+    build:
+      context: .
+      dockerfile: mosquitto.Dockerfile
+    command: ["-c", "/mosquitto/config/mosquitto_tls.conf"]
+    ports:
+      - "8883:8883"
+    volumes:
+      - ./certs:/mosquitto/certs
+    restart: unless-stopped
+
+  # ==========================
+  # PHA 1 (OPEN)
+  # ==========================
+  sensor-open:
+    build: .
+    command: python sensor.py
+    environment:
+      - BROKER_HOST=mosquitto-open
+    depends_on:
+      - mosquitto-open
+
+  attacker-open:
+    build: .
+    command: python attacker.py
+    environment:
+      - BROKER_HOST=mosquitto-open
+    depends_on:
+      - mosquitto-open
+
+  subscriber-open:
+    build: .
+    command: python subscriber_test.py --mode open
+    environment:
+      - BROKER_HOST=mosquitto-open
+    depends_on:
+      - mosquitto-open
+
+  # ==========================
+  # PHA 2 (AUTH + ACL)
+  # ==========================
+  secure-sensor-auth-demo:
+    build: .
+    command: python secure_sensor.py --mode auth
+    environment:
+      - BROKER_HOST=mosquitto-auth
+      - BROKER_PORT=1883
+    depends_on:
+      - mosquitto-auth
+
+  secure-attacker-auth-demo:
+    build: .
+    command: python secure_attacker.py --mode auth
+    environment:
+      - BROKER_HOST=mosquitto-auth
+      - BROKER_PORT=1883
+    depends_on:
+      - mosquitto-auth
+
+  subscriber-auth-demo:
+    build: .
+    command: python subscriber_test.py --mode auth
+    environment:
+      - BROKER_HOST=mosquitto-auth
+      - BROKER_PORT=1883
+    depends_on:
+      - mosquitto-auth
+
+  # ==========================
+  # PHA 3 (TLS + AUTH)
+  # ==========================
+  secure-sensor-tls-demo:
+    build: .
+    command: python secure_sensor.py --mode tls
+    environment:
+      - BROKER_HOST=mosquitto-tls
+      - BROKER_TLS_PORT=8883
+    volumes:
+      - ./certs:/app/certs
+    depends_on:
+      - mosquitto-tls
+
+  secure-attacker-tls-demo:
+    build: .
+    command: python secure_attacker.py --mode tls
+    environment:
+      - BROKER_HOST=mosquitto-tls
+      - BROKER_TLS_PORT=8883
+    volumes:
+      - ./certs:/app/certs
+    depends_on:
+      - mosquitto-tls
+
+  subscriber-tls-demo:
+    build: .
+    command: python subscriber_test.py --mode tls
+    environment:
+      - BROKER_HOST=mosquitto-tls
+      - BROKER_TLS_PORT=8883
+    volumes:
+      - ./certs:/app/certs
+    depends_on:
+      - mosquitto-tls

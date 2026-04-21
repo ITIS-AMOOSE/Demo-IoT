@@ -17,8 +17,8 @@ import paho.mqtt.client as mqtt
 
 # ====== CẤU HÌNH ======
 BROKER_HOST = os.environ.get("BROKER_HOST", "localhost")
-MQTT_PORT = 1883
-MQTTS_PORT = 8883
+MQTT_PORT = int(os.environ.get("BROKER_PORT", "1883"))
+MQTTS_PORT = int(os.environ.get("BROKER_TLS_PORT", "8883"))
 TOPIC = "iot/demo/data"
 
 # Thông tin đăng nhập cho dashboard (chỉ đọc)

@@ -13,7 +13,7 @@ import paho.mqtt.client as mqtt
 
 # ====== CẤU HÌNH ======
 BROKER_HOST = os.environ.get("BROKER_HOST", "localhost")
-BROKER_PORT = 1883
+BROKER_PORT = int(os.environ.get("BROKER_PORT", "1883"))
 TOPIC = "iot/demo/data"
 DEVICE_ID = "sensor-01"
 INTERVAL = 2  # Gửi mỗi 2 giây

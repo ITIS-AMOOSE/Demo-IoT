@@ -21,8 +21,8 @@ import paho.mqtt.client as mqtt
 
 # ====== CẤU HÌNH ======
 BROKER_HOST = os.environ.get("BROKER_HOST", "localhost")
-MQTT_PORT = 1883       # Port cho Pha 2 (auth)
-MQTTS_PORT = 8883      # Port cho Pha 3 (TLS)
+MQTT_PORT = int(os.environ.get("BROKER_PORT", "1883"))           # Port cho Pha 2 (auth)
+MQTTS_PORT = int(os.environ.get("BROKER_TLS_PORT", "8883"))      # Port cho Pha 3 (TLS)
 TOPIC = "iot/demo/data"
 DEVICE_ID = "sensor-01"
 INTERVAL = 2
