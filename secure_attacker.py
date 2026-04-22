@@ -2,7 +2,7 @@
 secure_attacker.py - Giả lập tấn công khi broker đã bảo mật (Pha 2 & Pha 3)
 Minh họa việc attacker bị từ chối khi:
   - Pha 2: Sai username/password hoặc không có quyền publish
-  - Pha 3: Không có cert TLS hợp lệ
+  - Pha 3: Sai credentials và/hoặc không có thiết lập TLS hợp lệ
 
 Cách dùng:
   Pha 2: python secure_attacker.py --mode auth
@@ -15,6 +15,8 @@ import random
 import argparse
 import ssl
 import os
+import socket
+import threading
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
@@ -31,6 +33,15 @@ WRONG_PASSWORD = "wrongpass"
 
 # Attacker không có CA cert hợp lệ
 FAKE_CA_CERT = "certs/ca.crt"  # Có file nhưng sai credentials
+connected_event = threading.Event()
+
+
+def build_client_id():
+    """Tạo client_id duy nhất để tránh bị broker đá vì trùng ID."""
+    env_client_id = os.environ.get("MQTT_CLIENT_ID")
+    if env_client_id:
+        return env_client_id
+    return f"attacker-secure-{socket.gethostname()}-{os.getpid()}"
 
 
 def generate_fake_data():
@@ -45,6 +56,7 @@ def generate_fake_data():
 def on_connect(client, userdata, flags, rc):
     mode = userdata.get("mode", "unknown")
     if rc == 0:
+        connected_event.set()
         print(f"[ATTACKER] Kết nối thành công (chế độ: {mode})")
         print("[ATTACKER] Đang thử publish dữ liệu giả...")
     elif rc == 4 or rc == 5:
@@ -60,6 +72,7 @@ def on_publish(client, userdata, mid):
 
 
 def on_disconnect(client, userdata, rc):
+    connected_event.clear()
     if rc != 0:
         print(f"[ATTACKER] Bị ngắt kết nối bởi broker (mã: {rc})")
 
@@ -75,7 +88,7 @@ def main():
     args = parser.parse_args()
 
     client = mqtt.Client(
-        client_id="attacker-secure",
+        client_id=build_client_id(),
         userdata={"mode": args.mode},
     )
     client.on_connect = on_connect
@@ -124,7 +137,11 @@ def main():
         return
 
     client.loop_start()
-    time.sleep(2)  # Đợi kết quả on_connect
+    if not connected_event.wait(timeout=5):
+        print("[ATTACKER] Không vào được broker, dừng thử publish.")
+        client.loop_stop()
+        client.disconnect()
+        return
 
     # Thử publish vài bản tin
     print(f"\n[ATTACKER] Thử gửi 3 bản tin giả vào topic '{TOPIC}'...")

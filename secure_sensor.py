@@ -15,6 +15,8 @@ import random
 import argparse
 import ssl
 import os
+import socket
+import threading
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
@@ -26,6 +28,7 @@ MQTTS_PORT = int(os.environ.get("BROKER_TLS_PORT", "8883"))      # Port cho Pha 
 TOPIC = "iot/demo/data"
 DEVICE_ID = "sensor-01"
 INTERVAL = 2
+connected_event = threading.Event()
 
 # Thông tin đăng nhập (phải trùng với password_file của Mosquitto)
 USERNAME = "sensor"
@@ -33,6 +36,14 @@ PASSWORD = "sensor123"
 
 # Đường dẫn cert cho TLS (Pha 3)
 CA_CERT = "certs/ca.crt"
+
+
+def build_client_id():
+    """Tạo client_id duy nhất để tránh trùng với container khác."""
+    env_client_id = os.environ.get("MQTT_CLIENT_ID")
+    if env_client_id:
+        return env_client_id
+    return f"{DEVICE_ID}-secure-{socket.gethostname()}-{os.getpid()}"
 
 
 def generate_sensor_data():
@@ -48,6 +59,7 @@ def generate_sensor_data():
 def on_connect(client, userdata, flags, rc):
     mode = userdata.get("mode", "unknown")
     if rc == 0:
+        connected_event.set()
         print(f"[SECURE SENSOR] Kết nối thành công! (chế độ: {mode})")
     elif rc == 5:
         print(f"[SECURE SENSOR] Kết nối bị từ chối: sai username/password!")
@@ -59,6 +71,7 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_disconnect(client, userdata, rc):
+    connected_event.clear()
     if rc != 0:
         print(f"[SECURE SENSOR] Mất kết nối bất ngờ, mã: {rc}")
 
@@ -75,7 +88,7 @@ def main():
 
     # Tạo client với userdata chứa mode
     client = mqtt.Client(
-        client_id=f"{DEVICE_ID}-secure",
+        client_id=build_client_id(),
         userdata={"mode": args.mode},
     )
     client.on_connect = on_connect
@@ -119,7 +132,11 @@ def main():
         return
 
     client.loop_start()
-    time.sleep(1)  # Đợi callback on_connect
+    if not connected_event.wait(timeout=5):
+        print("[SECURE SENSOR] Lỗi: chưa kết nối broker, dừng gửi để tránh lỗi lặp.")
+        client.loop_stop()
+        client.disconnect()
+        return
 
     print(f"[SECURE SENSOR] Gửi dữ liệu lên '{TOPIC}' mỗi {INTERVAL} giây...")
     print("[SECURE SENSOR] Nhấn Ctrl+C để dừng.\n")

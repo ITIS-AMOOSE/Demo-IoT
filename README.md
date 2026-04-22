@@ -78,6 +78,8 @@ iot-security-demo/
 ### Chạy đồng thời cả 3 pha (1 lệnh cho demo)
 
 > Dùng khi bạn muốn mở demo và show ngay 3 mức bảo mật cùng lúc, không cần đổi profile qua lại.
+>
+> Không chạy thêm `python sensor.py` hoặc `python attacker.py` local khi dùng cách này để tránh chạy trùng publisher.
 
 ```powershell
 # Nếu demo Pha 3 (TLS), nhớ tạo cert trước (chạy 1 lần)
@@ -108,9 +110,12 @@ docker compose -f docker-compose.demo.yml down
 
 ### Pha 1 — Không bảo mật
 
-**Terminal 1: Khởi động hệ thống**
+> Khuyến nghị demo ổn định: chỉ chạy `mosquitto` + `nodered` bằng Docker,
+> còn `sensor/attacker` chạy local để Wireshark bắt gói loopback rõ ràng.
+
+**Terminal 1: Khởi động broker + dashboard**
 ```powershell
-docker compose --profile pha1 up --build
+docker compose --profile pha1 up --build mosquitto nodered
 ```
 
 **Terminal 2: Chạy sensor local (để Wireshark bắt được gói tin)**
@@ -132,15 +137,15 @@ python attacker.py
 4. Tìm gói **Connect Command** → thấy `User Name Flag: Not set` (không xác thực)
 5. 📸 Chụp ảnh làm bằng chứng: **dữ liệu truyền không mã hóa**
 
-Dừng: `Ctrl+C` ở mỗi terminal, rồi `docker compose --profile pha1 down`
+Dừng: `Ctrl+C` ở terminal local, rồi `docker compose --profile pha1 down`
 
 ---
 
 ### Pha 2 — Auth + ACL
 
-**Terminal 1: Khởi động broker với Auth**
+**Terminal 1: Khởi động broker + dashboard với Auth**
 ```powershell
-$env:MOSQUITTO_CONFIG="mosquitto_auth.conf"; docker compose --profile pha2 up --build
+$env:MOSQUITTO_CONFIG="mosquitto_auth.conf"; docker compose --profile pha2 up --build mosquitto nodered
 ```
 
 **Terminal 2: Chạy secure sensor local (có username/password)**
@@ -163,7 +168,7 @@ python secure_attacker.py --mode auth
 3. Tìm gói **Publish Message** → payload JSON **vẫn đọc rõ** (Auth không mã hóa dữ liệu!)
 4. 📸 Chụp ảnh: **có xác thực nhưng dữ liệu vẫn truyền rõ trên mạng**
 
-Dừng: `Ctrl+C` ở mỗi terminal, rồi `docker compose --profile pha2 down`
+Dừng: `Ctrl+C` ở terminal local, rồi `docker compose --profile pha2 down`
 
 ---
 
@@ -186,9 +191,9 @@ cd ..
 >   - Mở PowerShell quyền Administrator và chạy lại `.\generate_certs.bat`
 > - Nếu bạn đang ở sẵn thư mục `certs`, **không chạy lại** `cd certs`.
 
-**Terminal 1: Khởi động broker TLS**
+**Terminal 1: Khởi động broker TLS + dashboard TLS**
 ```powershell
-$env:MOSQUITTO_CONFIG="mosquitto_tls.conf"; docker compose --profile pha3 up --build
+$env:MOSQUITTO_CONFIG="mosquitto_tls.conf"; docker compose --profile pha3 up --build mosquitto nodered-tls
 ```
 
 **Terminal 2: Chạy secure sensor TLS local**
@@ -201,14 +206,14 @@ python secure_sensor.py --mode tls
 ```powershell
 python secure_attacker.py --mode tls
 ```
-→ ❌ Không có cert → Tấn công thất bại
+→ ❌ Sai credentials (và/hoặc không có cert hợp lệ) → Tấn công thất bại
 
 **🦈 Wireshark:**
 1. Filter: `tcp.port == 8883`
 2. Chỉ thấy **TLS encrypted** → KHÔNG đọc được payload
 3. 📸 Chụp ảnh: **dữ liệu hoàn toàn được mã hóa**
 
-Dừng: `Ctrl+C` ở mỗi terminal, rồi `docker compose --profile pha3 down`
+Dừng: `Ctrl+C` ở terminal local, rồi `docker compose --profile pha3 down`
 
 ---
 
