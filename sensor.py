@@ -7,6 +7,7 @@ import json
 import time
 import random
 import os
+import socket
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
@@ -17,6 +18,17 @@ BROKER_PORT = int(os.environ.get("BROKER_PORT", "1883"))
 TOPIC = "iot/demo/data"
 DEVICE_ID = "sensor-01"
 INTERVAL = 2  # Gửi mỗi 2 giây
+
+
+def build_client_id():
+    """
+    Tạo client_id duy nhất để tránh đụng với sensor khác.
+    Có thể override bằng biến môi trường MQTT_CLIENT_ID.
+    """
+    env_client_id = os.environ.get("MQTT_CLIENT_ID")
+    if env_client_id:
+        return env_client_id
+    return f"{DEVICE_ID}-pub-{socket.gethostname()}-{os.getpid()}"
 
 
 def generate_sensor_data():
@@ -42,11 +54,18 @@ def on_publish(client, userdata, mid):
     pass  # Log đã in ở vòng lặp chính
 
 
+def on_disconnect(client, userdata, rc):
+    """Callback khi mất kết nối."""
+    if rc != 0:
+        print(f"[SENSOR] Mất kết nối broker (rc={rc}), đang tự reconnect...")
+
+
 def main():
     # Tạo MQTT client
-    client = mqtt.Client(client_id=f"{DEVICE_ID}-pub")
+    client = mqtt.Client(client_id=build_client_id())
     client.on_connect = on_connect
     client.on_publish = on_publish
+    client.on_disconnect = on_disconnect
 
     # Kết nối tới broker
     try:

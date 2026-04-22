@@ -210,9 +210,9 @@
     {
         "id": "mqtt-broker-1",
         "type": "mqtt-broker",
-        "name": "Mosquitto Local",
-        "broker": "mosquitto",
-        "port": "1883",
+        "name": "Mosquitto Dashboard",
+        "broker": "${MQTT_HOST}",
+        "port": "${MQTT_PORT}",
         "clientid": "nodered-dashboard",
         "autoConnect": true,
         "usetls": false,

@@ -211,7 +211,7 @@
         "id": "mqtt-broker-1",
         "type": "mqtt-broker",
         "name": "Mosquitto TLS",
-        "broker": "mosquitto",
+        "broker": "mosquitto-tls",
         "port": "8883",
         "clientid": "nodered-dashboard",
         "autoConnect": true,

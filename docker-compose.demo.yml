@@ -9,7 +9,61 @@ services:
     command: ["-c", "/mosquitto/config/mosquitto_open.conf"]
     ports:
       - "1883:1883"
+    networks:
+      default:
+        aliases:
+          - mosquitto
     restart: unless-stopped
+
+  # ==========================
+  # NODE-RED DASHBOARD (3 UI)
+  # ==========================
+  nodered-pha1:
+    build: ./node_red
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered_pha1_data:/data
+      - ./node_red/flow-export.json:/data/flows.json
+      - ./node_red/flows_cred.json:/data/flows_cred.json
+      - ./node_red/settings.js:/data/settings.js
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - MQTT_HOST=mosquitto-open
+      - MQTT_PORT=1883
+    depends_on:
+      - mosquitto-open
+
+  nodered-pha2:
+    build: ./node_red
+    ports:
+      - "1881:1880"
+    volumes:
+      - nodered_pha2_data:/data
+      - ./node_red/flow-export.json:/data/flows.json
+      - ./node_red/flows_cred.json:/data/flows_cred.json
+      - ./node_red/settings.js:/data/settings.js
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - MQTT_HOST=mosquitto-auth
+      - MQTT_PORT=1883
+    depends_on:
+      - mosquitto-auth
+
+  nodered-pha3:
+    build: ./node_red
+    ports:
+      - "1882:1880"
+    volumes:
+      - nodered_pha3_data:/data
+      - ./node_red/flow-pha3.json:/data/flows.json
+      - ./node_red/flows_cred.json:/data/flows_cred.json
+      - ./node_red/settings.js:/data/settings.js
+      - ./certs:/data/certs
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    depends_on:
+      - mosquitto-tls
 
   mosquitto-auth:
     build:
@@ -123,3 +177,8 @@ services:
       - ./certs:/app/certs
     depends_on:
       - mosquitto-tls
+
+volumes:
+  nodered_pha1_data:
+  nodered_pha2_data:
+  nodered_pha3_data:
