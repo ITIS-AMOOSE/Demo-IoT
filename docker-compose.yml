@@ -1,3 +1,18 @@
+# Khối dùng chung cho nodered (Pha 1 & 2, MQTT 1883) — extension, không phải service
+x-nodered-mqtt1883: &nodered_mqtt1883
+  build: ./node_red
+  ports:
+    - "1880:1880"
+  volumes:
+    - nodered_data:/data
+    - ./node_red/flow-export.json:/data/flows.json
+    - ./node_red/flows_cred.json:/data/flows_cred.json
+    - ./node_red/settings.js:/data/settings.js
+  environment:
+    - TZ=Asia/Ho_Chi_Minh
+    - MQTT_HOST=mosquitto
+    - MQTT_PORT=1883
+
 services:
   # =============================================================
   # MOSQUITTO BROKER
@@ -18,25 +33,23 @@ services:
 
   # =============================================================
   # NODE-RED DASHBOARD
-  # Pha 1 & 2: dùng flow port 1883
-  # Pha 3:     dùng flow port 8883 + TLS
+  # Pha 1:  nodered — kéo thêm sensor + attacker (cùng depends_on)
+  # Pha 2:  nodered-pha2 — không kéo sensor/attacker mở (chỉ mosquitto)
+  # Pha 3:  nodered-tls — flow port 8883 + TLS
   # =============================================================
   nodered:
-    build: ./node_red
-    ports:
-      - "1880:1880"
-    volumes:
-      - nodered_data:/data
-      - ./node_red/flow-export.json:/data/flows.json
-      - ./node_red/flows_cred.json:/data/flows_cred.json
-      - ./node_red/settings.js:/data/settings.js
-    environment:
-      - TZ=Asia/Ho_Chi_Minh
-      - MQTT_HOST=mosquitto
-      - MQTT_PORT=1883
+    <<: *nodered_mqtt1883
     depends_on:
       - mosquitto
-    profiles: ["pha1", "pha2"]
+      - sensor
+      - attacker
+    profiles: ["pha1"]
+
+  nodered-pha2:
+    <<: *nodered_mqtt1883
+    depends_on:
+      - mosquitto
+    profiles: ["pha2"]
 
   nodered-tls:
     build: ./node_red

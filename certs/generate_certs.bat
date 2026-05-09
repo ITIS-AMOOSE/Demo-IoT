@@ -10,18 +10,29 @@ echo  Tao chung chi tu ky cho demo IoT TLS
 echo ========================================
 echo.
 
-REM Kiểm tra OpenSSL
+REM Tim OpenSSL: PATH, hoac cac thu muc cai thuong gap (Shining Light Win64, v1.x–4.x)
+set "OPENSSL_CMD=openssl"
 where openssl >nul 2>nul
 if %ERRORLEVEL% neq 0 (
-    echo [LOI] Khong tim thay OpenSSL!
-    echo Hay cai OpenSSL va them vao PATH.
-    echo Download tai: https://slproweb.com/products/Win32OpenSSL.html
-    pause
-    exit /b 1
+    if exist "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" (
+        set "OPENSSL_CMD=C:\Program Files\OpenSSL-Win64\bin\openssl.exe"
+    ) else if exist "C:\Program Files\OpenSSL\bin\openssl.exe" (
+        set "OPENSSL_CMD=C:\Program Files\OpenSSL\bin\openssl.exe"
+    ) else if exist "C:\OpenSSL-Win64\bin\openssl.exe" (
+        set "OPENSSL_CMD=C:\OpenSSL-Win64\bin\openssl.exe"
+    ) else (
+        echo [LOI] Khong tim thay OpenSSL!
+        echo   - Hay them OpenSSL-Win64\bin vao PATH, hoac
+        echo   - Cai tu: https://slproweb.com/products/Win32OpenSSL.html
+        echo Goi y PowerShell: $env:Path += ";C:\Program Files\OpenSSL-Win64\bin"
+        pause
+        exit /b 1
+    )
+    echo Dang dung: %OPENSSL_CMD%
 )
 
 echo [1/3] Tao CA (Certificate Authority)...
-openssl req -new -x509 -days 365 -extensions v3_ca ^
+"%OPENSSL_CMD%" req -new -x509 -days 365 -extensions v3_ca ^
     -keyout ca.key -out ca.crt ^
     -subj "/C=VN/ST=HCM/L=HCM/O=IoT-Demo/CN=Demo-CA" ^
     -passout pass:capassword
@@ -35,7 +46,7 @@ echo [OK] Da tao ca.key va ca.crt
 echo.
 
 echo [2/3] Tao Server Key va Certificate Signing Request...
-openssl req -new -nodes ^
+"%OPENSSL_CMD%" req -new -nodes ^
     -keyout server.key -out server.csr ^
     -subj "/C=VN/ST=HCM/L=HCM/O=IoT-Demo/CN=localhost"
 
@@ -48,7 +59,7 @@ echo [OK] Da tao server.key va server.csr
 echo.
 
 echo [3/3] Ky Server Certificate bang CA...
-openssl x509 -req -in server.csr ^
+"%OPENSSL_CMD%" x509 -req -in server.csr ^
     -CA ca.crt -CAkey ca.key -CAcreateserial ^
     -days 365 -out server.crt ^
     -passin pass:capassword

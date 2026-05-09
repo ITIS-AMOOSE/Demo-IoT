@@ -1,1 +1,3 @@
+# Các file .py trong repo chỉ cần gói sau (còn lại: thư viện chuẩn Python)
+# Phạm vi: sensor.py, attacker.py, secure_sensor.py, secure_attacker.py, subscriber_test.py
 paho-mqtt==1.6.1
